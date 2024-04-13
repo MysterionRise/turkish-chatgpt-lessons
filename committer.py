@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 import os
 
 
-def run_git_command(command):
+def run_git_command(command, env=None):
     """Run a git command in the shell and return its output."""
     result = subprocess.run(command, shell=True, text=True,
-                            capture_output=True)
+                            capture_output=True, env=env)
     return result.stdout.strip()
 
 
@@ -34,18 +34,22 @@ def commit_files(start_date):
     files = get_uncommitted_files()
     date = datetime.strptime(start_date, "%Y-%m-%d")
 
-    for file in files:
+    for i, file in enumerate(files):
         hour = random.randint(0, 23)
         minute = random.randint(0, 59)
         second = random.randint(0, 59)
         timestamp = date.replace(hour=hour, minute=minute,
                                  second=second).isoformat()
 
-        run_git_command(f"git add '{file}'")
-        run_git_command(
-            f"git commit -m 'feat: adding file {file}' --date='{timestamp}'")
+        env = os.environ.copy()
+        env['GIT_AUTHOR_DATE'] = timestamp
+        env['GIT_COMMITTER_DATE'] = timestamp
 
-        date += timedelta(days=1)  # Increment the date for the next file
+        run_git_command(f"git add '{file}'", env=env)
+        run_git_command(f"git commit -m 'feat: adding file {file}'", env=env)
+
+        if i < len(files) - 1 and random.random() > 0.7:
+            date += timedelta(days=1)
 
 
 if __name__ == "__main__":
